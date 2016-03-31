@@ -3,7 +3,7 @@ Description=Licor LI-840A logging service
 
 [Service]
 Type=simple
-ExecStart=/home/pi/2015-iaq-tracer.git/scripts/co2-logger.py
+ExecStart=/usr/sbin/co2-logger
 
 [Install]
 WantedBy=multi-user.target

@@ -22,7 +22,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 tsvlog = logging.getLogger('li840a.raw.tsv')
 tsvlog.setLevel(logging.INFO)
-tsvlogfile = TimedRotatingFileHandler('/var/log/li840a/raw/tsv/co2',
+tsvlogfile = TimedRotatingFileHandler('/var/log/li840a/1hz/co2',
                                       when='midnight')
 tsvlogfile.suffix = '%Y-%m-%d.tsv'
 tsvlogfile.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',

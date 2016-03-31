@@ -12,14 +12,14 @@ air ventilation rates. Parts include:
 * Volumetric mass flow controller (0-20 sLPM; Alicat Scientific) and
   cable for 8-pin interface
 * Linux computer (Raspberry Pi B+) plus
-    * USB-serial adapter (for CO2 analyzer)
+    * Paired Bluetooth serial dongles (for CO2 analyzer)
     * USB-serial adapter (for flow controller)
 * Enclosure plus cable grommets, hardware, etc
 
 
 ### Usage
 
-
+***TODO***
 
 
 
@@ -61,38 +61,26 @@ set tabstospaces
 
 #### Hardware setup
 
-Both the mass flow controller and CO2 analyzer use RS-232 serial
-ports (vs. TTL-style voltages), thus USB serial port adapters are
-required. The hardware UART could also be used but it would still
-mean converting voltage levels with an intermediate chip so might
-as well use matching USB thingies.
+The mass flow controller is connected to the Raspberry Pi using a
+USB serial (RS-232) adapter. The CO2/H2O analyzer is connected to
+the Pi using paired Bluetooth serial dongles (HC-05).
 
-> Our mass flow controller cable had tinned bare wire ends so we
-> soldered the cable into a female DB9 connector to connect it to
-> the USB serial adapter. 
+> In the previous release, we created udev rules to assign device
+> names to the USB serial adapters based on their physical USB
+> port. This was only required because (1) we used two identical
+> adapters and (2) the specific adapters we bought are relatively
+> poor quality (they do not possess unique serial numbers).
+>
+> Going forward, the analyzer is connected using paired Bluetooth
+> serial modules. Since the modules are 3.3V logic, the receiving
+> module is directly connected to the Pi's hardware UART and there
+> is no need to assign names based on physical USB port.
 
-To avoid having a specific order of operations, assign the USB 
-serial adapters permanent device names. By default, the adapters
-would be named "ttyUSB0" and "ttyUSB1", depending on what order
-they are plugged into the Pi -- we don't want that.
-
-Unfortunately, the specific USB adapters [I chose](http://www.amazon.com/gp/product/B00IDSM6BW) 
-does not have unique serial numbers programmed so the often
-recommended method for assigning persistent names with udev won't
-work. Instead, we follow [this Ask Ubuntu answer](http://askubuntu.com/a/50412)
-and assign names based on which physical USB port it plugs into.
-
-With the Pi held "upright" (network port left of USB ports), the
-mass flow controller USB adapter plugs into the lower-left port and
-CO2/H2O analyzer plugs into the lower-right port. Our rules are 
-written to the file `/etc/udev/rules.d/98-usb-serial.rules`:
+Here's our rules file, `/etc/udev/rules.d/98-tracer-release.rules`:
 
 ```
-# http://askubuntu.com/a/50412
-#  lower-left, next to ethernet: Alicat mass flow controller
-KERNEL=="ttyUSB*", KERNELS=="1-1.3:1.0", SYMLINK+="mfc"
-#  lower-right, away to ethernet: Licor LI840A co2/h2o analyzer
-KERNEL=="ttyUSB*", KERNELS=="1-1.5:1.0", SYMLINK+="li840a" 
+KERNEL=="ttyUSB0", SYMLINK+="mfc"
+KERNEL=="ttyAMA0", SYMLINK+="co2" 
 ```
 
 Reboot for rules to take effect. YMMV with other brands of USB
@@ -101,26 +89,25 @@ serial adapters.
 
 #### Software packages
 
-Install utilities and python support for the serial ports:
+Install python support for the serial ports:
 
 ```
-pi@tracer:~ $ sudo apt-get install minicom python-serial
+pi@tracer:~ $ sudo apt-get install python-serial
 ```
-
-The `minicom` package is useful for testing but not required.
-`python-serial` is required for interfacing with the CO2/H2O
-analyzer and flow controller.
 
 #### Share data
 
 First, create shared data directories for LI840A
 
-* `sudo mkdir /var/log/li840a` (shared as "co2")
-* `sudo mkdir /var/log/li840a/raw/xml` (direct from instrument)
-* `sudo mkdir /var/log/li840a/raw/tsv` (parsed to daily tab separated files)
-* `mkdir /home/pi/data` (shared on network)
-* `ln -s /var/log/li840a /home/pi/data/co2-monitor` (add to share)
-* `ln -s /var/log/mfc /home/pi/data/co2-injection` (add to share)
+* `sudo mkdir /var/log/li840a`
+* `sudo mkdir -p /var/log/li840a/raw` (XML data stream *TODO*)
+* `sudo mkdir -p /var/log/li840a/1hz` ("raw" but in TSV)
+    * TODO: `.../1min', mean 1-minute values
+    * TODO: `.../30min`, mean/sdev/min/max half-hour values
+    * TODO: `.../daily`, mean/sdev/min/max daily values
+* `sudo mkdir /var/log/tracer`
+* `sudo ln -s /var/log/li840a /var/log/tracer/sample`
+* `sudo ln -s /var/log/mfc /var/log/tracer/inject`
 
 Now export 
 
@@ -130,15 +117,20 @@ Now export
     * add following:
 
 ```
+...
+unix extensions = no
+
 [data]
    browseable = yes
    comment = Data directory
    create mask = 0700
    directory mask = 0700
    only guest = yes
-   path = /home/pi/data
+   path = /var/log/tracer
    public = yes
    read only = yes
+   follow symlinks = yes
+   wide links = yes
 ```
 
 
@@ -149,13 +141,55 @@ Now export
 
 ```
 network={
-  ssid="WSU LAR Indoor AQ"
-  psk="the long password we used"
+  ssid="<the SSID we use>"
+  psk="<the long password we use>"
 }
 
-> http://thepihut.com/blogs/raspberry-pi-tutorials/83502916-how-to-setup-wifi-on-raspbian-jessie-lite
+
+#### Install scripts as services
+
+Copy the scripts to appropriate directory (per the Linux
+Filesystem Hierarchy Standard) and drop file extensions.
+Then make the files executable.
+
+```
+pi@tracer:~/2015-iaq-tracer $ sudo cp scripts/co2-logger.py /usr/sbin/co2-logger
+pi@tracer:~/2015-iaq-tracer $ sudo cp scripts/mfc-control.py /usr/bin/mfc-control
+pi@tracer:~/2015-iaq-tracer $ sudo chmod +x /usr/sbin/co2-logger
+pi@tracer:~/2015-iaq-tracer $ sudo chmod +x /usr/bin/mfc-control
+```
+
+Now install and enable the co2 logging service:
+
+```
+pi@tracer:~/2015-iaq-tracer $ sudo cp etc/systemd/system/co2-logger.service /etc/systemd/system/
+pi@tracer:~/2015-iaq-tracer $ sudo systemctl enable co2-logger.service
+```
+
+And finally, setup the mass flow controller script on a timer:
+
+```
+pi@tracer:~ $ sudo crontab -e
+```
+```
+...
+0 */3 * * * /usr/bin/mfc-control
+```
+
+This would run the script every 3 hours, at the start (zeroth
+minute) of the hour.
+
+
 
 #### Configure serial console for bluetooth dongles
+
+**Ignore this section:**
+
+> In previous release, a Bluetooth serial adapter was used to
+> provide shell access via the hardware UART (`/ttyAMA0`). That
+> access route has been shelved so the UART can be used with
+> paired Bluetooth serial modules to wirelessly record the 
+> CO2/H2O analyzer.
 
 We've selected an HC-06 module (linvor1.8) which, unfortunately,
 cannot operate above 38400 baud rate. The default serial UART is
@@ -166,9 +200,7 @@ Then change instances of '115200' to '19200' in `/boot/cmdline.txt`.
 
 Since Raspbian Jessie uses systemd, there is no `/etc/inittab` file.
 
-
 > https://learn.adafruit.com/adafruit-ultimate-gps-hat-for-raspberry-pi/pi-setup
-
 > http://blog.miguelgrinberg.com/post/a-cheap-bluetooth-serial-port-for-your-raspberry-pi
 
 

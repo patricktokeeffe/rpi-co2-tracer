@@ -17,8 +17,8 @@ import logging
 
 ################## USER-DEFINED VALUES ##################
 LOGGING_DIRECTORY = '/var/log/mfc/'
-MESSAGES_FILENAME = 'home2-winter.log' #'log-devtest.txt'
-DATALOG_FILENAME  = 'home2-winter.tsv' #'data-devtest.tsv'
+MESSAGES_FILENAME = 'mfc.log' # cumulative
+DATALOG_FILENAME  = 'mfc' # rotated daily to mfc.YYYYMMDD.tsv
 
 INJECT_SCALE = 100  # int {2-100}, percent MFC open
 INJECT_TIME = 120    # int {>0}, duration in seconds

@@ -1,0 +1,4 @@
+# first serial USB adpater plugged in is for mass flow controller
+KERNEL=="ttyUSB0", SYMLINK+="mfc"
+# hardware UART connects to analyzer via bluetooth serial links
+KERNEL=="ttyAMA0", SYMLINK+="li840a"
