@@ -144,6 +144,7 @@ network={
   ssid="<the SSID we use>"
   psk="<the long password we use>"
 }
+```
 
 
 #### Install scripts as services
@@ -179,6 +180,18 @@ pi@tracer:~ $ sudo crontab -e
 This would run the script every 3 hours, at the start (zeroth
 minute) of the hour.
 
+
+#### Report data to ScadaBR
+
+Run the file `scripts/update-scadabr.py` every minute using cron:
+
+```
+$ sudo crontab -e
+```
+```
+...
+* * * * * python /full/path/to/the/script
+```
 
 
 #### Configure serial console for bluetooth dongles
