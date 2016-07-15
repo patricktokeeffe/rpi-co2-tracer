@@ -50,8 +50,6 @@ log.setLevel(logging.INFO)
 log.addHandler(datlog)
 
 msg.info("Starting tracer injection routine...")
-#log.info('\t'.join(['1', '2', '3']))
-#import sys; sys.exit()
 
 def poll_mfc():
     mfc.write("A\r")
@@ -59,7 +57,6 @@ def poll_mfc():
     record = mfc.read(80)
     try:
         (_, P_air, T_air, F_vol, F_mass, F_sp, gas) = record.split()
-        #print('\t'.join([P_air, T_air, F_vol, F_mass, F_sp, gas]))
         log.info('\t'.join([P_air, T_air, F_vol, F_mass, F_sp, gas]))
     except:
         pass
@@ -91,7 +88,7 @@ class TimedAsker(object):
         self.is_running = False
 
 msg.info("Opening serial connection to MFC...")
-mfc =  serial.Serial('/dev/mfc', 19200, timeout=0.050)
+mfc =  serial.Serial('/dev/mfc', 19200, timeout=0.10)
 
 msg.info("Asserting control of MFC...")
 mfc.write("*@=A\r")
@@ -100,10 +97,10 @@ msg.info("Starting data logger...")
 mfc_logger = TimedAsker(1, poll_mfc) # auto-starts
 
 msg.info("Waiting for stable readings...")
-sleep(6) # typ. missing 1st second
+sleep(6) # typ. misses 1st second
 
 msg.info("Opening MFC to %i%%..." % INJECT_SCALE)
-mfc.write("A%i\r" % (64000 *INJECT_SCALE/100.0))
+mfc.write('A%i\r' % (64000*INJECT_SCALE/100.0))
 
 msg.info("Injecting for %i seconds..." % INJECT_TIME)
 sleep(INJECT_TIME)
@@ -116,7 +113,9 @@ sleep(5)
 
 msg.info("Saving log files...")
 mfc_logger.stop()
+sleep(1)
 
 msg.info("Done.")
 
+mfc.close()
 

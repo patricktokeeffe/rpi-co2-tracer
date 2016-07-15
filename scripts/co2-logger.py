@@ -31,7 +31,7 @@ tsvlog.addHandler(tsvlogfile)
 #tsvlogsocket = SocketHandler('127.0.0.1', 65478)#DEFAULT_TCP_LOGGING_PORT)
 #tsvlog.addHandler(tsvlogsocket)
 
-co2port = serial.Serial('/dev/li840a', 9600, timeout=1.0)
+co2port = serial.Serial('/dev/ttyAMA0', 9600, timeout=1.0)
 columns = ['co2', 'h2o', 'celltemp', 'cellpres', 'h2odewpoint', 'ivolt']
 units = ['ppmv', 'ppthv', 'degC', 'kPa', 'degC', 'Vdc']
 tsv_names = ['co2', 'h2o', 'T_cell', 'P_cell', 'T_dew', 'pwr_in']
