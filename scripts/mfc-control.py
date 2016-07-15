@@ -51,13 +51,18 @@ log.addHandler(datlog)
 
 msg.info("Starting tracer injection routine...")
 
+TP = 0 # tank pressure
+SP = 0 # set point
 def poll_mfc():
+    global TP; global SP # i know, i know..
     mfc.write("A\r")
     sleep(0.010)
     record = mfc.read(80)
     try:
         (_, P_air, T_air, F_vol, F_mass, F_sp, gas) = record.split()
         log.info('\t'.join([P_air, T_air, F_vol, F_mass, F_sp, gas]))
+        TP, SP = float(P_air), float(F_sp)
+        #msg.info('%s %s' % (TP, SP))
     except:
         pass
 
@@ -95,18 +100,37 @@ mfc.write("*@=A\r")
 
 msg.info("Starting data logger...")
 mfc_logger = TimedAsker(1, poll_mfc) # auto-starts
+while (TP < 0.01):
+    sleep(1)
+
+msg.info("Checking tank pressure...")
+min_tank_press = 20 # psia
+if TP < min_tank_press:
+   msg.info("Insufficient pressure: %s psia [warning: graceful shutdown not implemented]" % TP)
+   # TODO FIXME
 
 msg.info("Waiting for stable readings...")
-sleep(6) # typ. misses 1st second
+sleep(3) # typ. misses 1st second
 
 msg.info("Opening MFC to %i%%..." % INJECT_SCALE)
-mfc.write('A%i\r' % (64000*INJECT_SCALE/100.0))
+retries = 5
+for i in range(retries):
+    mfc.write('A%i\r' % (64000*INJECT_SCALE/100.0))
+    if (SP > 0):
+        break
+    sleep(1.5)
+    msg.info("Retrying (%s of %s attempts)..." % (i+1, retries))
 
 msg.info("Injecting for %i seconds..." % INJECT_TIME)
 sleep(INJECT_TIME)
 
 msg.info("Closing MFC valve...")
-mfc.write("A0\r")
+for i in range(retries):
+    mfc.write("A0\r")
+    if (SP < 0.1):
+        break
+    sleep(1.5)
+    msg.info("Retrying (%s of %s attempts)..." % (i+1, retries))
 
 msg.info("Waiting for stable readings...")
 sleep(5)
