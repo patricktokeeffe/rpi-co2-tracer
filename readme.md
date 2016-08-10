@@ -127,11 +127,15 @@ pi@tracer:~ $ sudo apt-get install python-serial
 
 First, create shared data directories for LI840A
 
-* `sudo mkdir /var/log/li840a`
 * `sudo mkdir -p /var/log/li840a/1hz` (raw in TSV)
+* `sudo mkdir /var/log/mfc`
 * `sudo mkdir /var/log/tracer`
 * `sudo ln -s /var/log/li840a /var/log/tracer/sample`
 * `sudo ln -s /var/log/mfc /var/log/tracer/inject`
+
+> in preparation for moving all log dirs under `/var/log/tracer`:
+
+* `sudo mkdir /var/log/tracer/typek` 
 
 Now export 
 
@@ -178,10 +182,13 @@ Filesystem Hierarchy Standard) and drop file extensions.
 Then make the files executable.
 
 ```
-pi@tracer:~/2015-iaq-tracer $ sudo cp scripts/co2-logger.py /usr/sbin/co2-logger
-pi@tracer:~/2015-iaq-tracer $ sudo cp scripts/mfc-control.py /usr/bin/mfc-control
-pi@tracer:~/2015-iaq-tracer $ sudo chmod +x /usr/sbin/co2-logger
-pi@tracer:~/2015-iaq-tracer $ sudo chmod +x /usr/bin/mfc-control
+$ cd ~/rpi-co2-tracer
+$ sudo cp scripts/co2-logger.py /usr/sbin/co2-logger
+$ sudo cp scripts/typek-logger.py /usr/sbin/typek-logger
+$ sudo cp scripts/mfc-control.py /usr/bin/mfc-control
+$ sudo chmod +x /usr/sbin/co2-logger
+$ sudo chmod +x /usr/sbin/typek-logger
+$ sudo chmod +x /usr/bin/mfc-control
 ```
 
 Now install and enable the co2 logging service:
@@ -189,6 +196,14 @@ Now install and enable the co2 logging service:
 ```
 pi@tracer:~/2015-iaq-tracer $ sudo cp etc/systemd/system/co2-logger.service /etc/systemd/system/
 pi@tracer:~/2015-iaq-tracer $ sudo systemctl enable co2-logger.service
+```
+
+Also the thermocouple logging service:
+
+```
+$ sudo cp /etc/tracer/typek-logger.conf /etc/tracer/
+$ sudo cp /etc/systemd/system/typek-logger.service /etc/systemd/system/
+$ sudo systemctl enable typek-logger.service
 ```
 
 And finally, setup the mass flow controller script on a timer:
