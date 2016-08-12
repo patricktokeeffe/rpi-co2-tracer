@@ -185,10 +185,8 @@ Then make the files executable.
 $ cd ~/rpi-co2-tracer
 $ sudo cp scripts/co2-logger.py /usr/sbin/co2-logger
 $ sudo cp scripts/switch-logger.py /usr/sbin/switch-logger
-$ sudo cp scripts/mfc-control.py /usr/bin/mfc-control
 $ sudo chmod +x /usr/sbin/co2-logger
 $ sudo chmod +x /usr/sbin/switch-logger
-$ sudo chmod +x /usr/bin/mfc-control
 ```
 
 Now install and enable the co2 logging service:
@@ -206,8 +204,8 @@ $ sudo cp etc/systemd/system/switch-logger.service /etc/systemd/system/
 $ sudo systemctl enable switch-logger
 ```
 
-The thermocouple logger is (now) handled by an installation
-script:
+The thermocouple logger and MFC control script are now handled
+by an installation script:
 
 ```
 $ sudo ./install.sh

@@ -9,10 +9,12 @@ from __future__ import print_function
 import os, os.path as osp
 import serial
 
-from time import sleep
+import time
 from threading import Timer
 
 import logging
+
+import paho.mqtt.client as paho
 
 
 ################## USER-DEFINED VALUES ##################
@@ -22,6 +24,10 @@ DATALOG_FILENAME  = 'mfc' # rotated daily to mfc.YYYYMMDD.tsv
 
 INJECT_SCALE = 100  # int {2-100}, percent MFC open
 INJECT_TIME = 120    # int {>0}, duration in seconds
+
+BROKER_ADDR = '10.1.1.4'
+BROKER_PORT = '1883'
+REPORT_TOPIC = 'home/tracer/mfc/state'
 #########################################################
 
 
@@ -49,19 +55,31 @@ log = logging.getLogger(__name__+".data")
 log.setLevel(logging.INFO)
 log.addHandler(datlog)
 
+#### MQTT integration
+client = paho.Client()
+client.connect(BROKER_ADDR, BROKER_PORT)
+client.loop_start()
+
+
 msg.info("Starting tracer injection routine...")
 
 TP = 0 # tank pressure
 SP = 0 # set point
+ON = 0 # "is running" flag
 def poll_mfc():
     global TP; global SP # i know, i know..
     mfc.write("A\r")
-    sleep(0.010)
+    time.sleep(0.010)
     record = mfc.read(80)
     try:
         (_, P_air, T_air, F_vol, F_mass, F_sp, gas) = record.split()
         log.info('\t'.join([P_air, T_air, F_vol, F_mass, F_sp, gas]))
         TP, SP = float(P_air), float(F_sp)
+
+        client.publish(REPORT_TOPIC,
+            ('{"tstamp": %.2f, "injecting": %s, "inlet_P": %s}' %
+             (time.time(), ON, TP)),
+            qos=1, retain=True)
         #msg.info('%s %s' % (TP, SP))
     except:
         pass
@@ -109,8 +127,10 @@ if TP < min_tank_press:
    msg.info("Insufficient pressure: %s psia [warning: graceful shutdown not implemented]" % TP)
    # TODO FIXME
 
+ON = 1 # let the injection begin
+
 msg.info("Waiting for stable readings...")
-sleep(3) # typ. misses 1st second
+time.sleep(3) # typ. misses 1st second
 
 msg.info("Opening MFC to %i%%..." % INJECT_SCALE)
 retries = 5
@@ -118,28 +138,31 @@ for i in range(retries):
     mfc.write('A%i\r' % (64000*INJECT_SCALE/100.0))
     if (SP > 0):
         break
-    sleep(1.5)
+    time.sleep(1.5)
     msg.info("Retrying (%s of %s attempts)..." % (i+1, retries))
 
 msg.info("Injecting for %i seconds..." % INJECT_TIME)
-sleep(INJECT_TIME)
+time.sleep(INJECT_TIME)
 
 msg.info("Closing MFC valve...")
 for i in range(retries):
     mfc.write("A0\r")
     if (SP < 0.1):
         break
-    sleep(1.5)
+    time.sleep(1.5)
     msg.info("Retrying (%s of %s attempts)..." % (i+1, retries))
 
+ON = 0 # injection is over
+
 msg.info("Waiting for stable readings...")
-sleep(5)
+time.sleep(5)
 
 msg.info("Saving log files...")
 mfc_logger.stop()
-sleep(1)
+time.sleep(1)
 
 msg.info("Done.")
 
 mfc.close()
 
+client.loop_stop()
