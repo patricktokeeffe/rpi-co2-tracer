@@ -11,15 +11,15 @@ from __future__ import print_function
 
 import os, os.path as osp
 import time
+import math
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-### FIXME why isn't this handler under `logging.handlers`?
-from logging import StreamHandler
-###
-
 import Adafruit_MAX31855.MAX31855 as MAX
 
+import paho.mqtt.client as paho
+
+#### read config data
 import ConfigParser as configparser
 c = configparser.ConfigParser()
 c.read('/etc/tracer/typek-logger.conf')
@@ -30,7 +30,11 @@ DO = int(c.get('main', 'DO'))
 interval = int(c.get('main', 'interval'))
 logdir = c.get('main', 'logdir')
 logfile = c.get('main', 'logfile')
+broker_addr = c.get('mqtt', 'broker_addr')
+broker_port = c.get('mqtt', 'broker_port')
+report_topic = c.get('mqtt', 'report_topic')
 
+#### logging setup
 try:
     os.makedirs(logdir)
 except OSError:
@@ -53,18 +57,35 @@ log = logging.getLogger('typek-logger')
 log.setLevel(logging.INFO)
 log.addHandler(log_handler)
 
-# HINT for testing instead of `print()`s
-#log.addHandler(StreamHandler())
+#log.addHandler(logging.StreamHandler()) # for debugging
+
+#### MQTT integration
+def on_connect(client, userdata, flags, rc):
+    print("CONNACK received with code %d." % (rc))
+
+client = paho.Client()
+client.on_connect = on_connect
+client.connect(broker_addr, broker_port)
+client.loop_start()
+
 
 sensor = MAX.MAX31855(CLK, CS, DO)
-
 while True:
     try:
         tmpr, ltmpr = sensor.readTempC(), sensor.readLinearizedTempC()
+
         log.info('\t'.join(['{:0.2F}'.format(tmpr),
                             '{:0.2F}'.format(ltmpr)]))
+
+        if not math.isnan(tmpr):
+            client.publish(report_topic,
+                           ('{"tstamp": %.2f, "T": %s}' %
+                            (time.time(), tmpr)),
+                           qos=1, retain=True)
+
         time.sleep(interval)
     except (KeyboardInterrupt, SystemExit):
+        client.loop_stop()
         raise
     except:
         pass
