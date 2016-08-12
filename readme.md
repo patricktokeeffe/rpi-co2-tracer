@@ -135,7 +135,7 @@ First, create shared data directories for LI840A
 
 > in preparation for moving all log dirs under `/var/log/tracer`:
 
-* `sudo mkdir /var/log/tracer/typek` 
+* `sudo mkdir /var/log/tracer/typek`
 
 Now export 
 
@@ -185,9 +185,11 @@ Then make the files executable.
 $ cd ~/rpi-co2-tracer
 $ sudo cp scripts/co2-logger.py /usr/sbin/co2-logger
 $ sudo cp scripts/typek-logger.py /usr/sbin/typek-logger
+$ sudo cp scripts/switch-logger.py /usr/sbin/switch-logger
 $ sudo cp scripts/mfc-control.py /usr/bin/mfc-control
 $ sudo chmod +x /usr/sbin/co2-logger
 $ sudo chmod +x /usr/sbin/typek-logger
+$ sudo chmod +x /usr/sbin/switch-logger
 $ sudo chmod +x /usr/bin/mfc-control
 ```
 
@@ -204,6 +206,14 @@ Also the thermocouple logging service:
 $ sudo cp /etc/tracer/typek-logger.conf /etc/tracer/
 $ sudo cp /etc/systemd/system/typek-logger.service /etc/systemd/system/
 $ sudo systemctl enable typek-logger.service
+```
+
+Plus the current switch logging service:
+
+```
+$ sudo cp etc/tracer/switch-logger.conf /etc/tracer/
+$ sudo cp etc/systemd/system/switch-logger.service /etc/systemd/system/
+$ sudo systemctl enable switch-logger
 ```
 
 And finally, setup the mass flow controller script on a timer:

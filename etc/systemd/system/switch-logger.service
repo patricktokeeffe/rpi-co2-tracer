@@ -1,0 +1,10 @@
+[Unit]
+Description=Current switch logging service
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/switch-logger
+
+[Install]
+WantedBy=multi-user.target
+
