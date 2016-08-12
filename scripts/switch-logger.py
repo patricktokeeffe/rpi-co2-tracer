@@ -25,7 +25,6 @@ LOGFILE = c.get('logging', 'logfile')
 MQTT_SERVER = c.get('mqtt', 'broker_ip')
 MQTT_PORT = c.get('mqtt', 'broker_port')
 REPORT_TOPIC = c.get('mqtt', 'report_topic')
-STATE_TOPIC = c.get('mqtt', 'state_topic')
 
 #### logging setup
 log_path = osp.join(LOGDIR, LOGFILE)
@@ -85,7 +84,6 @@ while(True):
         # report to dashboard
         client.publish(REPORT_TOPIC, report % (time.time(), is_on),
                        qos=1, retain=True)
-        client.publish(STATE_TOPIC, str(is_on))
 
         # stand-by waiting for change
         GPIO.wait_for_edge(DETECT_PIN, GPIO.BOTH, bouncetime=200)
