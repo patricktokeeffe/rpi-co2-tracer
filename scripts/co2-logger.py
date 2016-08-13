@@ -13,7 +13,9 @@ import logging
 import serial
 import json
 import time
-import os.path as osp
+import os, os.path as osp
+
+from logging.handlers import TimedRotatingFileHandler
 
 from xml.etree import cElementTree as ET
 
@@ -34,7 +36,11 @@ report_topic = c.get('mqtt', 'report_topic')
 report_interval = c.getfloat('mqtt', 'report_interval')
 
 #### logging setup
-from logging.handlers import TimedRotatingFileHandler 
+try:
+    os.makedirs(log_dir)
+except OSError:
+    if not osp.isdir(log_dir):
+        raise
 
 tsvlog = logging.getLogger('li840a.raw.tsv')
 tsvlog.setLevel(logging.INFO)
