@@ -13,39 +13,39 @@ import logging
 import serial
 import json
 import time
+import os.path as osp
 
 from xml.etree import cElementTree as ET
 
 import paho.mqtt.client as paho
 
+#### read config file
+import ConfigParser as configparser
+c = configparser.ConfigParser()
+c.read('/etc/tracer/co2-logger.conf')
 
-########    CONFIG    ######################
-broker_addr = '10.1.1.4'
-broker_port = '1883'
-report_topic = 'home/tracer/li840a/state'
-report_interval = 9.6 # secs
-    # HINT use less than 10 sec to prevent
-    # interval stretching but more than
-    # next lowest record interval (9.5sec)
-############################################
+serial_port = c.get('main', 'serial_port')
+serial_baud = c.getint('main', 'serial_baud')
+log_dir = c.get('logging', 'log_dir')
+log_file = c.get('logging', 'log_file')
+broker_addr = c.get('mqtt', 'broker_addr')
+broker_port = c.get('mqtt', 'broker_port')
+report_topic = c.get('mqtt', 'report_topic')
+report_interval = c.getfloat('mqtt', 'report_interval')
 
-
+#### logging setup
 from logging.handlers import TimedRotatingFileHandler 
-#                              SocketHandler,
-#                              DEFAULT_TCP_LOGGING_PORT)
 
 tsvlog = logging.getLogger('li840a.raw.tsv')
 tsvlog.setLevel(logging.INFO)
-tsvlogfile = TimedRotatingFileHandler('/var/log/li840a/1hz/co2',
+tsvlogfile = TimedRotatingFileHandler(osp.join(log_dir, log_file),
                                       when='midnight')
 tsvlogfile.suffix = '%Y-%m-%d.tsv'
 tsvlogfile.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',
                                           datefmt='%Y-%m-%d %H:%M:%S'))
 tsvlog.addHandler(tsvlogfile)
-#tsvlogsocket = SocketHandler('127.0.0.1', 65478)#DEFAULT_TCP_LOGGING_PORT)
-#tsvlog.addHandler(tsvlogsocket)
 
-co2port = serial.Serial('/dev/ttyAMA0', 9600, timeout=1.0)
+co2port = serial.Serial(serial_port, serial_baud, timeout=1.0)
 columns = ['co2', 'h2o', 'celltemp', 'cellpres', 'h2odewpoint', 'ivolt']
 units = ['ppmv', 'ppthv', 'degC', 'kPa', 'degC', 'Vdc']
 tsv_names = ['co2', 'h2o', 'T_cell', 'P_cell', 'T_dew', 'pwr_in']
@@ -87,9 +87,7 @@ while True:
                                          pwr=d['ivolt']),
                            qos=1, retain=True)
 
-        #print(json.dumps(d))
-        #screen.addstr(0, 0, "Cell T: {0}".format(T_cell))
-        #screen.refresh()
+        # no need to sleep
     except ET.ParseError:
         ## ignore garbled messages (typ. for 1st msg after connect)
         continue

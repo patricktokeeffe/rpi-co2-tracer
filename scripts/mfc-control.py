@@ -16,29 +16,31 @@ import logging
 
 import paho.mqtt.client as paho
 
+#### read config file
+import ConfigParser as configparser
+c = configparser.ConfigParser()
+c.read('/etc/tracer/mfc-control.conf')
 
-################## USER-DEFINED VALUES ##################
-LOGGING_DIRECTORY = '/var/log/mfc/'
-MESSAGES_FILENAME = 'mfc.log' # cumulative
-DATALOG_FILENAME  = 'mfc' # rotated daily to mfc.YYYYMMDD.tsv
+serial_port = c.get('main', 'serial_port')
+serial_baud = c.getint('main', 'serial_baud')
+inject_rate = c.getint('main', 'inject_rate')
+inject_time = c.getint('main', 'inject_time')
+log_dir = c.get('logging', 'log_dir')
+msg_file = c.get('logging', 'msg_file')
+log_file = c.get('logging', 'log_file')
+broker_addr = c.get('mqtt', 'broker_addr')
+broker_port = c.get('mqtt', 'broker_port')
+report_topic = c.get('mqtt', 'report_topic')
 
-INJECT_SCALE = 100  # int {2-100}, percent MFC open
-INJECT_TIME = 120    # int {>0}, duration in seconds
-
-BROKER_ADDR = '10.1.1.4'
-BROKER_PORT = '1883'
-REPORT_TOPIC = 'home/tracer/mfc/state'
-#########################################################
-
-
+#### logging setup
 try:
-    os.makedirs(LOGGING_DIRECTORY)
+    os.makedirs(log_dir)
 except OSError:
-    if not osp.isdir(LOGGING_DIRECTORY):
+    if not osp.isdir(log_dir):
         raise
 
 # setup logging narrative messages to file
-msglog = logging.FileHandler(osp.join(LOGGING_DIRECTORY, MESSAGES_FILENAME))
+msglog = logging.FileHandler(osp.join(log_dir, msg_file))
 msglog.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d\t%(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S'))
                             # http://stackoverflow.com/a/7517430/2946116
@@ -48,7 +50,7 @@ msg.addHandler(msglog)
 msg.addHandler(logging.StreamHandler()) # +console/stderr
 
 # setup logging tab-separated data to file
-datlog = logging.FileHandler(osp.join(LOGGING_DIRECTORY, DATALOG_FILENAME))
+datlog = logging.FileHandler(osp.join(log_dir, log_file))
 datlog.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',
                                       datefmt='%Y-%m-%d %H:%M:%S'))
 log = logging.getLogger(__name__+".data")
@@ -57,7 +59,7 @@ log.addHandler(datlog)
 
 #### MQTT integration
 client = paho.Client()
-client.connect(BROKER_ADDR, BROKER_PORT)
+client.connect(broker_addr, broker_port)
 client.loop_start()
 
 
@@ -76,7 +78,7 @@ def poll_mfc():
         log.info('\t'.join([P_air, T_air, F_vol, F_mass, F_sp, gas]))
         TP, SP = float(P_air), float(F_sp)
 
-        client.publish(REPORT_TOPIC,
+        client.publish(report_topic,
             ('{"tstamp": %.2f, "injecting": %s, "inlet_P": %s}' %
              (time.time(), ON, TP)),
             qos=1, retain=True)
@@ -111,7 +113,7 @@ class TimedAsker(object):
         self.is_running = False
 
 msg.info("Opening serial connection to MFC...")
-mfc =  serial.Serial('/dev/mfc', 19200, timeout=0.10)
+mfc =  serial.Serial(serial_port, serial_baud, timeout=0.10)
 
 msg.info("Asserting control of MFC...")
 mfc.write("*@=A\r")
@@ -132,17 +134,17 @@ ON = 1 # let the injection begin
 msg.info("Waiting for stable readings...")
 time.sleep(3) # typ. misses 1st second
 
-msg.info("Opening MFC to %i%%..." % INJECT_SCALE)
+msg.info("Opening MFC to %i%%..." % inject_rate)
 retries = 5
 for i in range(retries):
-    mfc.write('A%i\r' % (64000*INJECT_SCALE/100.0))
+    mfc.write('A%i\r' % (64000*inject_rate/100.0))
     if (SP > 0):
         break
     time.sleep(1.5)
     msg.info("Retrying (%s of %s attempts)..." % (i+1, retries))
 
-msg.info("Injecting for %i seconds..." % INJECT_TIME)
-time.sleep(INJECT_TIME)
+msg.info("Injecting for %i seconds..." % inject_time)
+time.sleep(inject_time)
 
 msg.info("Closing MFC valve...")
 for i in range(retries):

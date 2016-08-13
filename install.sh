@@ -19,6 +19,7 @@ systemctl restart co2-logger.service
 echo "Installing mass flow controller script..."
 cp scripts/mfc-control.py /usr/sbin/mfc-control
 chmod +x /usr/sbin/mfc-control
+cp etc/tracer/mfc-control.conf /etc/tracer/
 
 
 # thermocouple logger
