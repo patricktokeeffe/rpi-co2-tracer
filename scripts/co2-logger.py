@@ -60,7 +60,7 @@ tsv_names = ['co2', 'h2o', 'T_cell', 'P_cell', 'T_dew', 'pwr_in']
 client = paho.Client()
 client.connect(broker_addr, broker_port)
 client.loop_start()
-report = ('{{"tstamp": {ts:.2f}, "co2": {co2:.3f}, "h2o": {h2o:.3f}, '
+report = ('{{"tstamp": {ts:.2f}, "CO2": {co2:.3f}, "H2O": {h2o:.3f}, '
           '"cell_T": {cell_T:.3f}, "cell_P": {cell_P:.3f}, "dewpoint": '
           '{dp:.3f}, "pwr_src": {pwr:.3f}}}')
 # HINT initialize report rate limiter flag
