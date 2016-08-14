@@ -47,7 +47,7 @@ tsvlog.setLevel(logging.INFO)
 tsvlogfile = TimedRotatingFileHandler(osp.join(log_dir, log_file),
                                       when='midnight')
 tsvlogfile.suffix = '%Y-%m-%d.tsv'
-tsvlogfile.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',
+tsvlogfile.setFormatter(logging.Formatter('%(asctime)s.%(msecs)d\t%(message)s',
                                           datefmt='%Y-%m-%d %H:%M:%S'))
 tsvlog.addHandler(tsvlogfile)
 
