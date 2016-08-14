@@ -4,6 +4,8 @@ Description=Type K thermocouple logging service
 [Service]
 Type=simple
 ExecStart=/usr/sbin/typek-logger
+Restart=always
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
