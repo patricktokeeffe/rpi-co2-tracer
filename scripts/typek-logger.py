@@ -54,7 +54,7 @@ log = logging.getLogger('typek-logger')
 log.setLevel(logging.INFO)
 log.addHandler(log_handler)
 
-#log.addHandler(logging.StreamHandler()) # for debugging
+log.addHandler(logging.StreamHandler()) # for debugging
 
 #### MQTT integration
 def on_connect(client, userdata, flags, rc):

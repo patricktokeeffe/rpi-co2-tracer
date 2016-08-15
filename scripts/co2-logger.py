@@ -55,6 +55,7 @@ tsvlogfile.suffix = '%Y-%m-%d.tsv'
 tsvlogfile.setFormatter(logging.Formatter(tsvfmt,
                                           datefmt='%Y-%m-%dT%H:%M:%S'))
 tsvlog.addHandler(tsvlogfile)
+tsvlog.addHandler(logging.StreamHandler()) # for debugging
 
 co2port = serial.Serial(serial_port, serial_baud, timeout=1.0)
 columns = ['co2', 'h2o', 'celltemp', 'cellpres', 'h2odewpoint', 'ivolt']

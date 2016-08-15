@@ -46,8 +46,7 @@ log = logging.getLogger('current-switch')
 log.setLevel(logging.INFO)
 log.addHandler(log_file)
 
-#log.addHandler(logging.StreamHandler()) # for debugging
-
+log.addHandler(logging.StreamHandler()) # for debugging
 
 #### switch detection
 GPIO.setmode(GPIO.BCM)
