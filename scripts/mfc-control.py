@@ -125,14 +125,23 @@ mfc.write("*@=A\r")
 
 msg.info("Starting data logger...")
 mfc_logger = TimedAsker(1, poll_mfc) # auto-starts
-while (TP < 0.01):
-    sleep(1)
 
-msg.info("Checking tank pressure...")
-min_tank_press = 20 # psia
-if TP < min_tank_press:
-   msg.info("Insufficient pressure: %s psia [warning: graceful shutdown not implemented]" % TP)
-   # TODO FIXME
+msg.info("Waiting for data...")
+for i in range(10):
+    time.sleep(1)
+    if (TP > 1): # meaning 'valid data received'
+        break
+
+if (TP < 20):
+    if (TP < 1):
+        msg.info("Timed out! Is MFC over pressure?")
+    else:
+        msg.info("Low pressure! PV: %s psia, SP: 20-30 psia" % TP)
+    msg.info("Aborting...")
+    mfc_logger.stop()
+    client.loop_stop()
+    import sys
+    sys.exit()
 
 ON = 1 # let the injection begin
 
