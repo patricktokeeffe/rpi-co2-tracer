@@ -41,17 +41,14 @@ except OSError:
     if not osp.isdir(logdir):
         raise
 
+# HINT force logging to include UTC offset
+# XXXX doesn't work with partial-hour offsets
+_Z = '{:+03d}00'.format(-time.timezone/3600)
+
 log_path = osp.join(logdir, logfile)
-log_formatter = logging.Formatter('%(asctime)s\t%(message)s',
-                                  datefmt='%Y-%m-%dT%H:%M:%S%z')
-log_formatter.converter = time.gmtime # HINT force logging in UTC
-        # http://stackoverflow.com/a/27858760
-        # https://mail.python.org/pipermail/python-dev/2010-August/102842.html
-        # http://bugs.python.org/issue9527
-        # http://stackoverflow.com/a/23016544
 log_handler = TimedRotatingFileHandler(log_path, when='midnight')
-        # HINT file rotation still occurs on LOCAL time
-log_handler.setFormatter(log_formatter)
+log_handler.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',
+                                           datefmt='%Y-%m-%dT%H:%M:%S'+_Z))
 log_handler.suffix = '%Y-%m-%d.tsv'
 log = logging.getLogger('typek-logger')
 log.setLevel(logging.INFO)

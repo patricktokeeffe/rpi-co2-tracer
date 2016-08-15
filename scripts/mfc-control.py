@@ -39,9 +39,14 @@ except OSError:
     if not osp.isdir(log_dir):
         raise
 
+# HINT force logging to include UTC offset
+# XXXX doesn't work with partial-hour offsets
+_Z = '{:+03d}00'.format(-time.timezone/3600)
+msgfmt = '%(asctime)s.%(msecs)03d{}\t%(message)s'.format(_Z)
+
 # setup logging narrative messages to file
 msglog = logging.FileHandler(osp.join(log_dir, msg_file))
-msglog.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d\t%(message)s',
+msglog.setFormatter(logging.Formatter(msgfmt,
                                       datefmt='%Y-%m-%d %H:%M:%S'))
                             # http://stackoverflow.com/a/7517430/2946116
 msg = logging.getLogger(__name__+".messages")
@@ -52,7 +57,7 @@ msg.addHandler(logging.StreamHandler()) # +console/stderr
 # setup logging tab-separated data to file
 datlog = logging.FileHandler(osp.join(log_dir, log_file))
 datlog.setFormatter(logging.Formatter('%(asctime)s\t%(message)s',
-                                      datefmt='%Y-%m-%d %H:%M:%S'))
+                                      datefmt='%Y-%m-%dT%H:%M:%S'+_Z))
 log = logging.getLogger(__name__+".data")
 log.setLevel(logging.INFO)
 log.addHandler(datlog)

@@ -42,13 +42,18 @@ except OSError:
     if not osp.isdir(log_dir):
         raise
 
+# HINT force logging to include timezone offset
+# XXXX doesn't work with partial-hour offsets
+_Z = '{:+03d}00'.format(-time.timezone/3600)
+tsvfmt = '%(asctime)s.%(msecs)d{}\t%(message)s'.format(_Z)
+
 tsvlog = logging.getLogger('li840a.raw.tsv')
 tsvlog.setLevel(logging.INFO)
 tsvlogfile = TimedRotatingFileHandler(osp.join(log_dir, log_file),
                                       when='midnight')
 tsvlogfile.suffix = '%Y-%m-%d.tsv'
-tsvlogfile.setFormatter(logging.Formatter('%(asctime)s.%(msecs)d\t%(message)s',
-                                          datefmt='%Y-%m-%d %H:%M:%S'))
+tsvlogfile.setFormatter(logging.Formatter(tsvfmt,
+                                          datefmt='%Y-%m-%dT%H:%M:%S'))
 tsvlog.addHandler(tsvlogfile)
 
 co2port = serial.Serial(serial_port, serial_baud, timeout=1.0)

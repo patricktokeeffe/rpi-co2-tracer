@@ -34,16 +34,14 @@ except OSError:
     if not osp.isdir(LOGDIR):
         raise
 
-log_fmt = logging.Formatter('%(asctime)s.%(msecs)03d\t%(message)s',
-                            datefmt='%Y-%m-%dT%H:%M:%S%z')
-log_fmt.converter = time.gmtime
-# HINT force timestamp to include a correct UTC offset
-    # http://stackoverflow.com/a/27858760
-    # https://mail.python.org/pipermail/python-dev/2010-August/102842.html
-    # http://bugs.python.org/issue9527
-    # http://stackoverflow.com/a/23016544
+# HINT force logging to include UTC offset
+# XXXX doesn't work for partial-hour offsets
+_Z = '{:+03d}00'.format(-time.timezone/3600)
+tsvfmt = '%(asctime)s.%(msecs)03d{}\t%(message)s'.format(_Z)
+
 log_file = logging.FileHandler(log_path)
-log_file.setFormatter(log_fmt)
+log_file.setFormatter(logging.Formatter(tsvfmt,
+                                        datefmt='%Y-%m-%dT%H:%M:%S%z'))
 log = logging.getLogger('current-switch')
 log.setLevel(logging.INFO)
 log.addHandler(log_file)
